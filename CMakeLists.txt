@@ -3,4 +3,4 @@ project(Hue_Console)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Hue_Console main.cpp)
+add_executable(Hue_Console main.cpp API_Adapter.h)
