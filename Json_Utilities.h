@@ -14,9 +14,8 @@ static inline void Json_Dump(const json& j, int log_level){
         std::cout << j.dump(log_level) << std::endl << std::endl;
 }
 
-static void json_Filter(json& in, json& filter){
-    //Json_Dump(filter,4);
-    //Json_Dump(in,4);
+//Delete onjects from Json based on filter object
+static void Json_Filter(json& in, json& filter){
     std::vector<std::string> to_Erase;
     for (json::iterator it = in.begin(); it != in.end(); ++it) {
         bool match = false;
@@ -25,7 +24,7 @@ static void json_Filter(json& in, json& filter){
             std::string k = it.key();
             if(f == "*" || f == k){//key match, check value
                 if(fi.value().is_object() && it.value().is_object()) { //recurse
-                    json_Filter(it.value(),fi.value());
+                    Json_Filter(it.value(),fi.value());
                     if(it.value().size()){
                         match = true;
                         break;
@@ -48,20 +47,20 @@ static void json_Filter(json& in, json& filter){
     }
     //Json_Dump(in,4);
 }
-
-json json_Filter_Copy(const json& in, json& filter){
+//Filters and returns a copy of the input json
+json Json_Filter_Copy(const json& in, json& filter){
     json out = in;
-    json_Filter(out,filter);
+    Json_Filter(out,filter);
     return out;
 }
-
-void json_Diff(json& Original, json New){
+//finds difference between two josn objects
+void Json_Diff(json& Original, json New){
     std::vector<std::string> to_Erase;
     for (json::iterator it = Original.begin(); it != Original.end(); ++it) {
         if(New.contains(it.key())){//exists.
             if(it.value().is_object()){
                 if(New[it.key()].is_object()) {//recurse
-                    json_Diff(it.value(),New[it.key()]);
+                    Json_Diff(it.value(),New[it.key()]);
                     if(!(it.value().size())){//empty no diffs. erase it
                         to_Erase.push_back(it.key());
                     }
@@ -90,10 +89,10 @@ void json_Diff(json& Original, json New){
         Original[n.key()] = n.value();
     }
 }
-
-json json_Diff_Copy(const json& in, json& New){
+//finds differnce and returns diff as copy
+json Json_Diff_Copy(const json& in, json& New){
     json out = in;
-    json_Diff(out,New);
+    Json_Diff(out,New);
     return out;
 }
 

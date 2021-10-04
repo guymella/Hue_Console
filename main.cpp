@@ -6,6 +6,7 @@
 
 void monitor(Hue_API*, bool*, uint8_t);
 
+//setup arg parser
 void configure_parser(cli::Parser& parser) {
     parser.set_optional<std::string>("v", "virtual_bridge", "192.168.0.0", "IP Address of virtual bridge.");
     parser.set_optional<std::string>("b", "bridge", "10.0.0.0", "IP Address of bridge.");
@@ -20,9 +21,11 @@ int main(int argc, char** argv) {
     configure_parser(parser);
     parser.run_and_exit_if_error();
 
+    //extract arguments
     auto URL = parser.get<std::string>("v");
     auto port = parser.get<int>("p");
     auto username = parser.get<std::string>("u");
+    bool is_virtual = parser.doesArgumentExist("v","virtual_bridge");
     uint8_t frequency = parser.get<int>("f");
     if (parser.doesArgumentExist("b","bridge")){
         URL = parser.get<std::string>("b");
@@ -35,27 +38,23 @@ int main(int argc, char** argv) {
     std::cout << std::endl;
 
 
-
     //Init API
-    bool is_virtual = parser.doesArgumentExist("v","virtual_bridge");
     Hue_API Api(URL,port,username,is_virtual);
-
 
     //Start Monitor
     bool running = true;
-
     std::cout << "Light Monitor Polling Every " << (int)frequency << " Seconds. Press ENTER to Exit..." << std::endl << std::endl;
     std::thread mon (monitor,&Api,&running,frequency);
-    std::cin.get();
+    std::cin.get();//wait for user to press enter
     running = false;
     mon.join();
 
     return 0;
 }
 
-
+//State Monitor loop, runs in its own thread
 void monitor(Hue_API* Api,bool* running,uint8_t frequency){
-    while (*running) {
+    while (*running) {//bool controled by main thread
         sleep(frequency);
         json gl1 = Api->Poll_Lights_State();
         if(gl1.size()){

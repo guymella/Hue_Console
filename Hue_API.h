@@ -9,6 +9,7 @@
 #include "API_Adapter.h"
 #include "Json_Utilities.h"
 
+//Format single light state json object to match spec
 static json _Format_Light_State(std::string id,json& light){
      json out;
      if(light.contains("name"))
@@ -23,7 +24,7 @@ static json _Format_Light_State(std::string id,json& light){
      }
      return out;
 }
-
+//Format ALL lights_state object to match spec
 static json Format_Monitor(json& lights){
     json out;
     for (json::iterator it = lights.begin(); it != lights.end(); ++it) {
@@ -31,7 +32,7 @@ static json Format_Monitor(json& lights){
     }
     return out;
 }
-
+//static Helper to Call API methods with parameters
 static void Call_Out_Parms(API_Adapter & api, const std::string method, const json& parms, json& result, int log_level = -2){
     auto res = api.Call(method,parms);
     if(res.error() == httplib::Error::Success && (res->body.c_str()[0] == '[' || res->body.c_str()[0] == '{')){
@@ -39,19 +40,16 @@ static void Call_Out_Parms(API_Adapter & api, const std::string method, const js
         Json_Dump(result,log_level);
     } else std::cout << "bad call "<< method <<  std::endl << res->body << std::endl << std::endl;
 }
-
+//static helper to call  API methods without perameters
 static void Call_Out(API_Adapter & api, const std::string method, json& result, int log_level = -2){
     auto res = api.Call(method);
-    if(res.error() == httplib::Error::Success){
+    if(res.error() == httplib::Error::Success && (res->body.c_str()[0] == '[' || res->body.c_str()[0] == '{')){
         result = json::parse(res->body);
         Json_Dump(result,log_level);
-    } else std::cout << "bad call "<< method << std::endl << std::endl;
+    } else std::cout << "bad call "<< method << std::endl << res->body << std::endl << std::endl;
 }
 
-
-
-
-
+//API Class for interacting with Philips Hue Bridge
 class Hue_API {
 public:
     Hue_API(const std::string& URL, int Port,const std::string& Username = "", bool Is_Virtual = false);
@@ -105,13 +103,12 @@ Hue_API::Hue_API(const std::string &URL, int Port,const std::string& Username, b
     }
     Init_API();
 }
-
+//initialize methods and filters for API
 void Hue_API::Init_API(int log_level) {
     api.New_Get("Get_Lights","lights");
     api.New_Get("Get_Light","lights/id");
     api.New_Put("Set_Light_State", "lights/id/state");
 
-    //lights_state_filter = {{"*",{{{"name","*"}},{{"state^",{{"on", "*"}},{{"bri","*"}},{{"hue","*"}}}}}}};
     lights_state_filter = {{"*",{{"name","*"},{"state",{{"bri","*"},{"on", "*"},{"hue","*"}}}}}};
 
     if(log_level > -2){
@@ -119,7 +116,7 @@ void Hue_API::Init_API(int log_level) {
         Json_Dump(lights_state_filter,log_level);
     }
 }
-
+//Get State of All Lights
 json Hue_API::Poll_Lights_State(int log_level) {
     json lights;
     Call_Out(api,"Get_Lights",lights,log_level);
@@ -131,10 +128,10 @@ json Hue_API::Poll_Lights_State(int log_level) {
     }
 
     //Filter
-    lights = json_Filter_Copy(lights,lights_state_filter);
+    lights = Json_Filter_Copy(lights,lights_state_filter);
 
     //Diff
-    json lights_diff = json_Diff_Copy(lights_state,lights);
+    json lights_diff = Json_Diff_Copy(lights_state,lights);
 
     //update new state
     lights_state = lights;
@@ -142,14 +139,14 @@ json Hue_API::Poll_Lights_State(int log_level) {
     Json_Dump(lights_diff,log_level);
     return lights_diff;
 }
-
+//Set state of specific light
 json Hue_API::Set_Light_State(std::string id, json state, int log_level) {
     json sl = {{"pathvars", {{"id" , id}}} , {"body" , state}};
     json res;
     Call_Out_Parms(api,"Set_Light_State",sl,res,log_level);
     return res;
 }
-
+//flash a light N times
 void Hue_API::Flash_Light(std::string id, uint8_t times, int log_level) {
     json ls_lo = {{"bri", 1}};
     json ls_hi = {{"bri", 254}};
@@ -160,7 +157,7 @@ void Hue_API::Flash_Light(std::string id, uint8_t times, int log_level) {
         Set_Light_State(id,ls_hi,log_level);
     }
 }
-
+//Get State of Single Light
 json Hue_API::Get_Light_State(std::string id,int log_level) {
     json light;
     json l = {{"pathvars", {{"id" , id}}}};
