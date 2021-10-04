@@ -1,12 +1,16 @@
 #include <iostream>
+#include <thread>
+
 #include "cmdparser.hpp"
 #include "Hue_API.h"
+
+void monitor(Hue_API*, bool*, uint8_t);
 
 void configure_parser(cli::Parser& parser) {
     parser.set_optional<std::string>("v", "virtual_bridge", "192.168.0.0", "IP Address of virtual bridge.");
     parser.set_optional<std::string>("b", "bridge", "10.0.0.0", "IP Address of bridge.");
-
     parser.set_optional<int>("p", "port", 80, "Port of bridge.");
+    parser.set_optional<int>("f", "frequency", 2, "frequency of monitor polling.");
     parser.set_optional<std::string>("u", "username", "", "Authorized username on the bridge.");
 }
 
@@ -19,6 +23,7 @@ int main(int argc, char** argv) {
     auto URL = parser.get<std::string>("v");
     auto port = parser.get<int>("p");
     auto username = parser.get<std::string>("u");
+    uint8_t frequency = parser.get<int>("f");
     if (parser.doesArgumentExist("b","bridge")){
         URL = parser.get<std::string>("b");
     } else std::cout << "Virtual ";
@@ -35,25 +40,27 @@ int main(int argc, char** argv) {
     bool is_virtual = parser.doesArgumentExist("v","virtual_bridge");
     Hue_API Api(URL,port,username,is_virtual);
 
-    //Get Lights
-    json ls_hi = {{"bri", 254}};
-    Api.Set_Light_State("9",ls_hi,-1);
 
-    json gl1 = Api.Poll_Lights_State(4);
+    //Start Monitor
+    bool running = true;
 
-    json ls_lo = {{"bri", 1}};
-    Api.Set_Light_State("9",ls_lo,-1);
-
-    json gl2 = Api.Poll_Lights_State(4);
-
-
-    //set Light state
-    Api.Flash_Light("9",2,-1);
-
-
-
-
-    //Get Light States
+    std::cout << "Light Monitor Polling Every " << (int)frequency << " Seconds. Press ENTER to Exit..." << std::endl << std::endl;
+    std::thread mon (monitor,&Api,&running,frequency);
+    std::cin.get();
+    running = false;
+    mon.join();
 
     return 0;
+}
+
+
+void monitor(Hue_API* Api,bool* running,uint8_t frequency){
+    while (*running) {
+        sleep(frequency);
+        json gl1 = Api->Poll_Lights_State();
+        if(gl1.size()){
+            std::cout << "New Light Settings Detected. Press ENTER to exit..."<< std::endl;
+            Json_Dump(Format_Monitor(gl1),4);
+        }
+    }
 }

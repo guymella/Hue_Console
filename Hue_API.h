@@ -9,14 +9,35 @@
 #include "API_Adapter.h"
 #include "Json_Utilities.h"
 
+static json _Format_Light_State(std::string id,json& light){
+     json out;
+     if(light.contains("name"))
+         out["name"] = light["name"];
+     out["id"] = id;
+     if(light.contains("state")){
+         for (json::iterator it = light["state"].begin(); it != light["state"].end(); ++it)
+             if(it.key() == "bri"){
+                 out["brightness"] = (uint8_t)(100*((float)it.value())/254);
+             } else
+                out[it.key()] = it.value();
+     }
+     return out;
+}
 
+static json Format_Monitor(json& lights){
+    json out;
+    for (json::iterator it = lights.begin(); it != lights.end(); ++it) {
+        out.push_back(_Format_Light_State(it.key(),lights[it.key()]));
+    }
+    return out;
+}
 
 static void Call_Out_Parms(API_Adapter & api, const std::string method, const json& parms, json& result, int log_level = -2){
     auto res = api.Call(method,parms);
-    if(res.error() == httplib::Error::Success){
+    if(res.error() == httplib::Error::Success && (res->body.c_str()[0] == '[' || res->body.c_str()[0] == '{')){
         result = json::parse(res->body);
         Json_Dump(result,log_level);
-    } else std::cout << "bad call "<< method << std::endl << std::endl;
+    } else std::cout << "bad call "<< method <<  std::endl << res->body << std::endl << std::endl;
 }
 
 static void Call_Out(API_Adapter & api, const std::string method, json& result, int log_level = -2){
@@ -27,12 +48,16 @@ static void Call_Out(API_Adapter & api, const std::string method, json& result, 
     } else std::cout << "bad call "<< method << std::endl << std::endl;
 }
 
+
+
+
+
 class Hue_API {
 public:
     Hue_API(const std::string& URL, int Port,const std::string& Username = "", bool Is_Virtual = false);
 
     json Poll_Lights_State(int log_level = -2); //retrieves lights and returns Diff
-    json Get_Light_State(std::string id);
+    json Get_Light_State(std::string id,int log_level = -2);
 
     json Set_Light_State(std::string id, json state, int log_level = -2);
     void Flash_Light(std::string id, uint8_t times, int log_level = -2);
@@ -43,9 +68,11 @@ private:
     API_Adapter api;
     json lights_state;
     json lights_state_filter;
+    bool Is_Virtual = false;
 };
 
-Hue_API::Hue_API(const std::string &URL, int Port,const std::string& Username, bool Is_Virtual) : api(URL,Port,"/api") {
+Hue_API::Hue_API(const std::string &URL, int Port,const std::string& Username, bool is_virtual)
+                    : Is_Virtual(is_virtual), api(URL,Port,"/api") {
     if(Username != ""){ //Username Specified
         api.Append_Root(Username);
     } else { //Handshake to get Username
@@ -81,6 +108,7 @@ Hue_API::Hue_API(const std::string &URL, int Port,const std::string& Username, b
 
 void Hue_API::Init_API(int log_level) {
     api.New_Get("Get_Lights","lights");
+    api.New_Get("Get_Light","lights/id");
     api.New_Put("Set_Light_State", "lights/id/state");
 
     //lights_state_filter = {{"*",{{{"name","*"}},{{"state^",{{"on", "*"}},{{"bri","*"}},{{"hue","*"}}}}}}};
@@ -96,14 +124,17 @@ json Hue_API::Poll_Lights_State(int log_level) {
     json lights;
     Call_Out(api,"Get_Lights",lights,log_level);
 
-    //FIlter
+    if(Is_Virtual){//the virtual bridge is broken. must poll each light individually
+        for (json::iterator it = lights.begin(); it != lights.end(); ++it) {
+            it.value() = Get_Light_State(it.key());
+        }
+    }
+
+    //Filter
     lights = json_Filter_Copy(lights,lights_state_filter);
-    //Json_Dump(lights,4);
 
     //Diff
-    //Json_Dump(lights_state,4);
     json lights_diff = json_Diff_Copy(lights_state,lights);
-    //Json_Dump(lights_diff,4);
 
     //update new state
     lights_state = lights;
@@ -128,6 +159,13 @@ void Hue_API::Flash_Light(std::string id, uint8_t times, int log_level) {
         sleep(1);
         Set_Light_State(id,ls_hi,log_level);
     }
+}
+
+json Hue_API::Get_Light_State(std::string id,int log_level) {
+    json light;
+    json l = {{"pathvars", {{"id" , id}}}};
+    Call_Out_Parms(api,"Get_Light",l,light,log_level);
+    return light;
 }
 
 

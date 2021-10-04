@@ -46,19 +46,19 @@ public:
 
 class API_Adapter {
 public:
-    //API_Adapter(std::string host, int port, std::string root, char* Init_Route = nullptr, char* Init_Body = nullptr, char* Init_Body_Type = nullptr, std::string Prompt = "");
-    API_Adapter(std::string host, int port, std::string root);
-    API_Adapter(std::string host, int port, std::string root, std::function<void(API_Adapter&)>& handshake);
+    API_Adapter(const std::string& host, int port, const std::string& root);
+    API_Adapter(const std::string& host, int port, const std::string& root, std::function<void(API_Adapter&)>& handshake);
+    ~API_Adapter();
 
     void Handshake(std::function<void(API_Adapter&)>& handshake);
-    void Append_Root(std::string route);
+    void Append_Root(const std::string& path);
     httplib::Client& Client();
     const std::string& Root() const;
 
-    void New_Get(std::string Name, std::string Path);
-    void New_Put(std::string Name, std::string Path);
-    void New_Post(std::string Name, std::string Path);
-    void New_Delete(std::string Name, std::string Path);
+    void New_Get(const std::string& Name, const std::string& Path);
+    void New_Put(const std::string& Name, const std::string& Path);
+    void New_Post(const std::string& Name, const std::string& Path);
+    void New_Delete(const std::string& Name, const std::string& Path);
 
     httplib::Result Call(const std::string& method) {return methods[method]->Call(*this);};
     httplib::Result Call(const std::string& method,const json& parms) {return methods[method]->Call(*this,parms);};;
@@ -75,7 +75,7 @@ private:
 
 class API_Get : iAPI {
 public:
-    API_Get (std::string path) : _path(path) {};
+    explicit API_Get(const std::string& path) : _path(path) {};
     httplib::Result Call(API_Adapter &api, const json& parms) override;
 private:
     std::string _path;
@@ -88,7 +88,7 @@ httplib::Result API_Get::Call(API_Adapter &api,const json &parms) {
 
 class API_Put : iAPI {
 public:
-    API_Put (std::string path): _path(path) {};
+    explicit API_Put (const std::string& path): _path(path) {};
     httplib::Result Call(API_Adapter &api,const json& parms) override;
 private:
     std::string _path;
@@ -102,7 +102,7 @@ httplib::Result API_Put::Call(API_Adapter &api,const json &parms) {
 
 class API_Post : iAPI {
 public:
-    API_Post (std::string path): _path(path) {};
+    explicit API_Post (const std::string& path): _path(path) {};
     httplib::Result Call(API_Adapter &api,const json& parms) override;
 private:
     std::string _path;
@@ -115,7 +115,7 @@ httplib::Result API_Post::Call(API_Adapter &api,const json &parms) {
 
 class API_Delete : iAPI {
 public:
-    API_Delete (std::string path): _path(path) {};
+    explicit API_Delete (const std::string& path): _path(path) {};
     httplib::Result Call(API_Adapter &api,const json& parms) override;
 private:
     std::string _path;
@@ -126,23 +126,23 @@ httplib::Result API_Delete::Call(API_Adapter &api,const json &parms) {
     return api.Client().Get(Append_Path(api.Root(),Apply_Path_Variables(_path,parms)).c_str());
 }
 
-API_Adapter::API_Adapter(std::string host
+API_Adapter::API_Adapter(const std::string& host
                          , int port
-                         , std::string root)
+                         , const std::string& root)
                          : cli(host, port)
                          , _api_root(root) {
 }
 
-API_Adapter::API_Adapter(std::string host
+API_Adapter::API_Adapter(const std::string& host
                          , int port
-                         , std::string root
+                         , const std::string& root
                          , std::function<void(API_Adapter &)>& handshake)
                             : cli(host, port)
                             , _api_root(root) {
     Handshake(handshake);
 }
 
-void API_Adapter::Append_Root(std::string path) {
+void API_Adapter::Append_Root(const std::string& path) {
     _api_root = Append_Path(_api_root,path);
 }
 
@@ -158,20 +158,27 @@ void API_Adapter::Handshake(std::function<void(API_Adapter&)>& handshake) {
     handshake(*this);
 }
 
-void API_Adapter::New_Get(std::string Name, std::string Path) {
+void API_Adapter::New_Get(const std::string& Name, const std::string& Path) {
     methods[Name] = (iAPI*) new API_Get(Path);
 }
 
-void API_Adapter::New_Put(std::string Name, std::string Path) {
+void API_Adapter::New_Put(const std::string& Name, const std::string& Path) {
     methods[Name] = (iAPI*) new API_Put(Path);
 }
 
-void API_Adapter::New_Post(std::string Name, std::string Path) {
+void API_Adapter::New_Post(const std::string& Name, const std::string& Path) {
     methods[Name] = (iAPI*) new API_Post(Path);
 }
 
-void API_Adapter::New_Delete(std::string Name, std::string Path) {
+void API_Adapter::New_Delete(const std::string& Name, const std::string& Path) {
     methods[Name] = (iAPI*) new API_Delete(Path);
+}
+
+API_Adapter::~API_Adapter() {
+    //free methods
+    for (const auto& kv : methods) {
+        delete kv.second;
+    }
 }
 
 
