@@ -40,7 +40,7 @@ class API_Adapter;
 
 class iAPI {
 public:
-    virtual httplib::Result Call(API_Adapter &api, json& parms) = 0;
+    virtual httplib::Result Call(API_Adapter &api, const json& parms) = 0;
     inline virtual httplib::Result Call(API_Adapter &api) {json j; return Call(api,j);};
 };
 
@@ -61,8 +61,7 @@ public:
     void New_Delete(std::string Name, std::string Path);
 
     httplib::Result Call(const std::string& method) {return methods[method]->Call(*this);};
-    httplib::Result Call(const std::string& method,json& parms) {return methods[method]->Call(*this,parms);};;
-
+    httplib::Result Call(const std::string& method,const json& parms) {return methods[method]->Call(*this,parms);};;
 
 private:
     httplib::Client cli;
@@ -77,12 +76,12 @@ private:
 class API_Get : iAPI {
 public:
     API_Get (std::string path) : _path(path) {};
-    httplib::Result Call(API_Adapter &api, json& parms) override;
+    httplib::Result Call(API_Adapter &api, const json& parms) override;
 private:
     std::string _path;
 };
 
-httplib::Result API_Get::Call(API_Adapter &api, json &parms) {
+httplib::Result API_Get::Call(API_Adapter &api,const json &parms) {
     return api.Client().Get(Append_Path(api.Root(),Apply_Path_Variables(_path,parms)).c_str());
 }
 
@@ -90,12 +89,12 @@ httplib::Result API_Get::Call(API_Adapter &api, json &parms) {
 class API_Put : iAPI {
 public:
     API_Put (std::string path): _path(path) {};
-    httplib::Result Call(API_Adapter &api, json& parms) override;
+    httplib::Result Call(API_Adapter &api,const json& parms) override;
 private:
     std::string _path;
 };
 
-httplib::Result API_Put::Call(API_Adapter &api, json &parms) {
+httplib::Result API_Put::Call(API_Adapter &api,const json &parms) {
     return api.Client().Put(Append_Path(api.Root(),Apply_Path_Variables(_path,parms)).c_str()
                             ,(char*)(parms["body"].dump().c_str())
                             ,"application/json");
@@ -104,12 +103,12 @@ httplib::Result API_Put::Call(API_Adapter &api, json &parms) {
 class API_Post : iAPI {
 public:
     API_Post (std::string path): _path(path) {};
-    httplib::Result Call(API_Adapter &api, json& parms) override;
+    httplib::Result Call(API_Adapter &api,const json& parms) override;
 private:
     std::string _path;
 };
 
-httplib::Result API_Post::Call(API_Adapter &api, json &parms) {
+httplib::Result API_Post::Call(API_Adapter &api,const json &parms) {
     //TODO::
     return api.Client().Get(Append_Path(api.Root(),Apply_Path_Variables(_path,parms)).c_str());
 }
@@ -117,12 +116,12 @@ httplib::Result API_Post::Call(API_Adapter &api, json &parms) {
 class API_Delete : iAPI {
 public:
     API_Delete (std::string path): _path(path) {};
-    httplib::Result Call(API_Adapter &api, json& parms) override;
+    httplib::Result Call(API_Adapter &api,const json& parms) override;
 private:
     std::string _path;
 };
 
-httplib::Result API_Delete::Call(API_Adapter &api, json &parms) {
+httplib::Result API_Delete::Call(API_Adapter &api,const json &parms) {
     //TODO::
     return api.Client().Get(Append_Path(api.Root(),Apply_Path_Variables(_path,parms)).c_str());
 }
