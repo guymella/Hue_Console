@@ -36,7 +36,16 @@ int main(int argc, char** argv) {
     Hue_API Api(URL,port,username,is_virtual);
 
     //Get Lights
-    json glr = Api.Poll_Lights_State(4);
+    json ls_hi = {{"bri", 254}};
+    Api.Set_Light_State("9",ls_hi,-1);
+
+    json gl1 = Api.Poll_Lights_State(4);
+
+    json ls_lo = {{"bri", 1}};
+    Api.Set_Light_State("9",ls_lo,-1);
+
+    json gl2 = Api.Poll_Lights_State(4);
+
 
     //set Light state
     Api.Flash_Light("9",2,-1);

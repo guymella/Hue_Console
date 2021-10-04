@@ -83,7 +83,8 @@ void Hue_API::Init_API(int log_level) {
     api.New_Get("Get_Lights","lights");
     api.New_Put("Set_Light_State", "lights/id/state");
 
-    lights_state_filter = {{"*",{{"name","*"},"state^",{{"on", "*"},{"bri","*"},{"hue","*"}}}}};
+    //lights_state_filter = {{"*",{{{"name","*"}},{{"state^",{{"on", "*"}},{{"bri","*"}},{{"hue","*"}}}}}}};
+    lights_state_filter = {{"*",{{"name","*"},{"state",{{"bri","*"},{"on", "*"},{"hue","*"}}}}}};
 
     if(log_level > -2){
         std::cout <<"api root: " << api.Root() << std::endl;
@@ -92,11 +93,23 @@ void Hue_API::Init_API(int log_level) {
 }
 
 json Hue_API::Poll_Lights_State(int log_level) {
-    json gl;
-    Call_Out(api,"Get_Lights",gl,log_level);
-    //TODO:: FIlter
-    //TODO:: Assign to Lights_State
-    return gl;
+    json lights;
+    Call_Out(api,"Get_Lights",lights,log_level);
+
+    //FIlter
+    lights = json_Filter_Copy(lights,lights_state_filter);
+    //Json_Dump(lights,4);
+
+    //Diff
+    //Json_Dump(lights_state,4);
+    json lights_diff = json_Diff_Copy(lights_state,lights);
+    //Json_Dump(lights_diff,4);
+
+    //update new state
+    lights_state = lights;
+
+    Json_Dump(lights_diff,log_level);
+    return lights_diff;
 }
 
 json Hue_API::Set_Light_State(std::string id, json state, int log_level) {
