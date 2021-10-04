@@ -1,6 +1,6 @@
 #include <iostream>
 #include "cmdparser.hpp"
-#include "Helpers.h"
+#include "Hue_API.h"
 
 void configure_parser(cli::Parser& parser) {
     parser.set_optional<std::string>("v", "virtual_bridge", "192.168.0.0", "IP Address of virtual bridge.");
@@ -29,68 +29,19 @@ int main(int argc, char** argv) {
     }
     std::cout << std::endl;
 
+
+
     //Init API
-
-    API_Adapter api(URL,port,"/api");
-
-    if(parser.doesArgumentExist("u","username")){//username specified. no handshake needed
-        api.Append_Root(username);
-    }else{ //no username specified. handshake to get one.
-        json hb;
-        if (parser.doesArgumentExist("v","virtual_bridge"))
-                hb = {{"devicetype" , "test user"},{"username","newuser"}};
-        else hb = {{"devicetype" , "my_hue_app#console"}};
-
-        //handshake callback
-        std::function<void(API_Adapter &)> handshake = [hb](API_Adapter& a){
-            //prompt for link button
-            std::cout << "Please Press The Link Button On your Bridge. Then press ""ENTER"" to continue..." <<std::endl;
-            std::cin.get();
-            //post
-            auto res = a.Client().Post((char*)(a.Root().c_str()),(char*)(hb.dump().c_str()),"application/json");
-            // extract username
-            if(res.error() == httplib::Error::Success){//bridge found
-                json j = json::parse(res->body);
-                if (j[0].contains("success")){//username created
-                    //add username to api route
-                    a.Append_Root(j[0]["success"]["username"]);
-                    std::cout << "Handshake Successful" << std::endl << std::endl ;
-                } else std::cout << "Handshake Failed. Make sure you press the Link Button on the bridge." << std::endl << std::endl ;
-            } else std::cout << "Bridge Not Found. Check IP address and port number." << std::endl << std::endl ;
-
-        };
-        //make handshake
-        api.Handshake(handshake);
-    }
-    //API connected
-    std::cout <<"api root: " << api.Root()<< std::endl << std::endl;
-
-
-    //setup interfaces
-
-    api.New_Get("Get_Lights","lights");
-    api.New_Put("Set_Light_State", "lights/id/state");
+    bool is_virtual = parser.doesArgumentExist("v","virtual_bridge");
+    Hue_API Api(URL,port,username,is_virtual);
 
     //Get Lights
-    json glr = Call_Out(api,"Get_Lights",4);
-
+    json glr = Api.Poll_Lights_State(4);
 
     //set Light state
+    Api.Flash_Light("9",2,-1);
 
-    json sl = {{"pathvars", {{"id" , "9"}}} , {"body" , {{"bri", 254}}}};
-    json slr = Call_Out(api,"Set_Light_State",sl,0);
 
-    for (uint8_t i = 0; i< 4 ; i++){
-        json sl2 = {{"pathvars", {{"id" , "9"}}} , {"body" , {{"bri", 1}}}};
-        json sl2r = Call_Out(api,"Set_Light_State",sl2,0);
-
-        sleep(1);
-
-        json sl3 = {{"pathvars", {{"id" , "9"}}} , {"body" , {{"bri", 254}}}};
-        json sl3r = Call_Out(api,"Set_Light_State",sl3,0);
-
-        sleep(1);
-    }
 
 
     //Get Light States

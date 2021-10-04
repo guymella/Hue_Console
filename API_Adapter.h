@@ -66,7 +66,7 @@ public:
 private:
     httplib::Client cli;
     std::string _api_root;
-    std::string session_ID = "";
+    //std::string session_ID = "";
     std::map<std::string, iAPI *> methods;
 
 };
