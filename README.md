@@ -30,3 +30,12 @@ to connect to the Virtual bridge on local host port 8080 with default username.
 to connect to the philips bridge on default port with handshake prompt.
 
 ./Hue_Console -b 10.0.0.238 -p 80
+
+# Build
+
+in source directory.
+
+Run "cmake ."
+
+then "cmake --build ."
+
