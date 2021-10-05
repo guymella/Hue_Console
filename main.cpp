@@ -41,6 +41,9 @@ int main(int argc, char** argv) {
     //Init API
     Hue_API Api(URL,port,username,is_virtual);
 
+    //Test Lights Update
+    //Api.Flash_Light("1",4);
+
     //Start Monitor
     bool running = true;
     std::cout << "Light Monitor Polling Every " << (int)frequency << " Seconds. Press ENTER to Exit..." << std::endl << std::endl;
