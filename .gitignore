@@ -1,6 +1,7 @@
 #builds
 cmake-build*
 .idea*
+.DS_Store
 
 # Prerequisites
 *.d
