@@ -6,6 +6,10 @@
  if Username is not specified in the command line arguments 
  the monitor will prompt you to initiate a handshake with the bridge device to get a username.
 
+# Simulator
+
+This program connects to the virtual Hue Bridge simulator. instructions at https://www.npmjs.com/package/hue-simulator 
+
 # Arguments
 
  -v URL  :: Specify Virtual Bridge URL, default = localhost. 
