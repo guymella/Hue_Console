@@ -21,5 +21,12 @@
 
 if -v is specified the API is set to Virtual Bridge Mode. 
 
+#Example
 
+to connect to the Virtual bridge on local host port 8080 with default username.
 
+./Hue_Console -v localhost -p 8080 -u newdeveloper
+
+to connect to the philips bridge on default port with handshake prompt.
+
+./Hue_Console -b 10.0.0.238 -p 80
