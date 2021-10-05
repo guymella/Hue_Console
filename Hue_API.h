@@ -85,6 +85,8 @@ Hue_API::Hue_API(const std::string &URL, int Port,const std::string& Username, b
             //prompt for link button
             std::cout << "Please Press The Link Button On your Bridge. Then press ""ENTER"" to continue..." <<std::endl;
             std::cin.get();
+            std::cout << "attempting to connect to bridge. this may take up to 1 minute..." <<std::endl << std::flush;
+
             //post
             auto res = a.Client().Post((char*)(a.Root().c_str()),(char*)(hb.dump().c_str()),"application/json");
             // extract username
